@@ -260,35 +260,6 @@ MKEM::GenerateMessage(CryptoPP::RandomNumberGenerator& rng,
   GenerateMessage(u, pad, secret, message);
 }
 
-
-// Crypto++ does not expose a method to perform general point
-// decompression, only to construct a Point from a buffer containing a
-// SEC1-format compressed point, which is not what we have.  Rather
-// than copy 'message' just to stick 0x02 on the front of it, we
-// duplicate here the point decompression algorithm embedded in
-// EC2N::DecodePoint.
-static bool
-DecompressPoint(Curve const& c, Point& P, SecByteBlock const& message)
-{
-  const byte *buf = message.data();
-  size_t len = message.SizeInBytes();
-  Curve::Field const& f = c.GetField();
-
-  P.identity = false;
-  P.x.Decode(buf, len);
-
-  if (P.x.IsZero()) {
-    P.y = f.SquareRoot(c.GetB());
-  } else {
-    Curve::FieldElement z = f.Square(P.x);
-    P.y = f.Divide(f.Add(f.Multiply(z, f.Add(P.x, c.GetA())), c.GetB()), z);
-    z = f.SolveQuadraticEquation(P.y);
-    z.SetCoefficient(0, 0);
-    P.y = f.Multiply(z, P.x);
-  }
-  return c.VerifyPoint(P);
-}
-
 void
 MKEM::DecodeMessage(SecByteBlock const& message,
                     SecByteBlock& secret) const
@@ -300,10 +271,15 @@ MKEM::DecodeMessage(SecByteBlock const& message,
   bool use_curve0 = !(message[0] & 0x80);
   Curve const& ca(use_curve0 ? params->c0 : params->c1);
   Integer const& sa(use_curve0 ? s0 : s1);
-  SecByteBlock unpadded = message;
-  unpadded[0] &= ~params->padmask;
 
-  if (!DecompressPoint(ca, q, unpadded) || q.identity)
+  // Copy the message, erase the padding bits, and put an 0x02 byte on
+  // the front so we can use DecodePoint() to recover the y-coordinate.
+  SecByteBlock unpadded(message.size() + 1);
+  unpadded[0] = 0x02;
+  unpadded[1] = (message[0] & ~params->padmask);
+  memcpy(&unpadded[2], &message[1], message.size() - 1);
+
+  if (!ca.DecodePoint(q, unpadded.data(), unpadded.size()) || q.identity)
     throw InvalidCiphertext("point not on curve, or at infinity");
 
   Point r(ca.Multiply(sa, q));
