@@ -1,0 +1,4 @@
+*.o
+katgen
+kat-c
+katdata.c
