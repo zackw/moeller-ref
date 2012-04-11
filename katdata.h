@@ -2,8 +2,8 @@
    Written and placed in the public domain by Zack Weinberg, 2012.
    N.B. This file must be compilable as either C or C++. */
 
-#ifndef _MOELLER_REF_KAT_DATA_H_
-#define _MOELLER_REF_KAT_DATA_H_
+#ifndef _MREF_KATDATA_H_
+#define _MREF_KATDATA_H_
 
 #include <stddef.h>
 

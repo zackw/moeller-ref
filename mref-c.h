@@ -3,8 +3,8 @@
 // Scheme with Pseudo-Random Ciphertexts" (key encapsulation only).
 // Written and placed in the public domain by Zack Weinberg, 2012.
 
-#ifndef _MOELLER_REF_H_
-#define _MOELLER_REF_H_
+#ifndef _MREF_CRYPTOPP_H_
+#define _MREF_CRYPTOPP_H_
 
 #include <cryptopp/ec2n.h>
 
@@ -96,8 +96,8 @@ public:
                        CryptoPP::SecByteBlock& secret,
                        CryptoPP::SecByteBlock& message) const;
 
-  // Decode an encrypted message.  As with GenerateKeyMessage, the
-  // result is NOT run through a KDF.
+  // Decode an encrypted message.  As with GenerateMessage, the result
+  // is NOT run through a KDF.
   // Throws CryptoPP::InvalidArgument if called when the secret key is
   // not available, and CryptoPP::InvalidCiphertext if the ciphertext is
   // invalid.
