@@ -20,8 +20,12 @@ katdata.o: katdata.c katdata.h
 katgen.o: katgen.cc mref-c.h
 mref-c.o: mref-c.cc mref-c.h
 
+# We regenerate katdata.c every time, but then we check to make sure it
+# came out the way we expected it.
 katdata.c: katgen
 	./katgen > katdata.cT
+	cmp -s katdata.cT katdata-ref.c || \
+	    { diff -u katdata.cT katdata-ref.c; exit 1; }
 	mv -f katdata.cT katdata.c
 
 check: all
