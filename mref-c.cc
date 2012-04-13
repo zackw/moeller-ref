@@ -111,7 +111,7 @@ random_s(RandomNumberGenerator& rng, Integer const& n, Integer const& p)
   h >>= 1;
   h --;
   for (;;) {
-    Integer r(rng, Integer::Zero(), h);
+    Integer r(rng, Integer::One(), h);
     if (r.Modulo(p).Compare(Integer::Zero()) == 0)
       continue;
     r <<= 1;
