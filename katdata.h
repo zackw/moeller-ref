@@ -18,8 +18,8 @@ typedef struct mk_test_key
 enum { mk_n_reference_keys = 4 };
 extern const mk_test_key mk_reference_keys[mk_n_reference_keys];
 
-// Note: Only the derived secret, not the message on the wire, depends
-// on the public key.
+/* Note: Only the derived secret, not the message on the wire, depends
+   on the public key. */
 typedef struct mk_test_message
 {
   const unsigned char u[21];

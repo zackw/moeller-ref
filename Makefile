@@ -4,8 +4,9 @@
 
 PROGRAMS = katgen kat-c kat-o
 
-CFLAGS   = -g -O2 -W -Wall
-CXXFLAGS = -g -O2 -W -Wall
+CFLAGS   = -g -O2 -std=c89 -Werror -Wall -Wextra -pedantic -Wstrict-prototypes -Wmissing-prototypes -Wwrite-strings -Wformat=2
+CXXFLAGS = -g -O2 -std=c++98 -Werror -Wall -Wextra -Wformat=2
+CPPFLAGS = -D_FORTIFY_SOURCE=2
 
 all: $(PROGRAMS)
 

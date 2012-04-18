@@ -1,5 +1,5 @@
-// Known-answer tests for Moeller KEM -- openssl version.
-// Written and placed in the public domain by Zack Weinberg, 2012.
+/* Known-answer tests for Moeller KEM -- openssl version.
+   Written and placed in the public domain by Zack Weinberg, 2012. */
 
 #include <ctype.h>
 #include <stdio.h>

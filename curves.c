@@ -4,18 +4,22 @@
 
 #include "curves.h"
 
+/* work around lack of compound literals in C89 */
+#define S_(c) #c
+#define S(c) S_(\x##c)
+
 /* 21-byte hexadecimal bignum */
-#define N21(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u)                  \
-  ((const uint8_t[]){0x##a,0x##b,0x##c,0x##d,0x##e,0x##f,0x##g,         \
-                     0x##h,0x##i,0x##j,0x##k,0x##l,0x##m,0x##n,         \
-                     0x##o,0x##p,0x##q,0x##r,0x##s,0x##t,0x##u}), 21
+#define N21(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u)          \
+  (const uint8_t *)(S(a) S(b) S(c) S(d) S(e) S(f) S(g)          \
+                    S(h) S(i) S(j) S(k) S(l) S(m) S(n)          \
+                    S(o) S(p) S(q) S(r) S(s) S(t) S(u)), 21
 
 /* 21+1-byte compressed hexadecimal curve point */
-#define P21(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u)                  \
-  ((const uint8_t[]){0x02,                                              \
-                     0x##a,0x##b,0x##c,0x##d,0x##e,0x##f,0x##g,         \
-                     0x##h,0x##i,0x##j,0x##k,0x##l,0x##m,0x##n,         \
-                     0x##o,0x##p,0x##q,0x##r,0x##s,0x##t,0x##u}), 22
+#define P21(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u)          \
+  (const uint8_t *)(S(02)                                       \
+                    S(a) S(b) S(c) S(d) S(e) S(f) S(g)          \
+                    S(h) S(i) S(j) S(k) S(l) S(m) S(n)          \
+                    S(o) S(p) S(q) S(r) S(s) S(t) S(u)), 22
 
 const struct mk_curve_params mk_curves[] = {
 /* MK_CURVE_163_0:
