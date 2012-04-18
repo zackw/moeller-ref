@@ -82,7 +82,7 @@ test_one(MKEM const& sk, MKEM const& pk, Integer const& u, byte pad,
   // reproduce the secret string.
   SecByteBlock so;
   try {
-    sk.DecodeMessage(m, so);
+    sk.DecodeMessage(mref, so);
     if (s != so)
       report_failure(s, so, "roundtrip:");
   } catch (CryptoPP::Exception const& e) {
@@ -93,6 +93,8 @@ test_one(MKEM const& sk, MKEM const& pk, Integer const& u, byte pad,
 static void
 test_set(MKEMParams const& params, mk_test_message const* set)
 {
+  set_failure = false;
+
   Integer u(set->u, sizeof set->u);
   SecByteBlock mref(set->m, sizeof set->m);
 
@@ -100,7 +102,6 @@ test_set(MKEMParams const& params, mk_test_message const* set)
        << (unsigned int)(set->pad) << '|';
   print_hexint(u, params.MsgSize());
   cout << "... " << std::flush;
-  set_failure = false;
 
   for (size_t i = 0; i < mk_n_reference_keys; i++) {
     MKEM sk(params, true,
@@ -120,10 +121,18 @@ test_set(MKEMParams const& params, mk_test_message const* set)
 int
 main()
 {
-  MKEMParams params;
+  try {
+    MKEMParams params;
 
-  for (size_t i = 0; i < mk_n_reference_messages; i++)
-    test_set(params, &mk_reference_messages[i]);
+    for (size_t i = 0; i < mk_n_reference_messages; i++)
+      test_set(params, &mk_reference_messages[i]);
+  } catch(std::exception const& e) {
+    report_failure("exception", e.what());
+    return 2;
+  } catch (...) {
+    report_failure("exception of unknown type");
+    return 2;
+  }
 
   return failure;
 }
