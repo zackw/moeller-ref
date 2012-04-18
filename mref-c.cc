@@ -62,8 +62,8 @@ MKEMParams::MKEMParams()
 // some n, and must be relatively prime to that n.  We know a priori
 // that n is of the form 2**k * p for some small integer k and prime
 // p.  Therefore, it suffices to choose a random integer in the range
-// [0, n/2) which is not divisible by p, and then multiply by two and
-// add one (enforcing oddness).
+// [0, n/2), multiply by two and add one (enforcing oddness), and then
+// reject values which are divisible by p.
 static Integer
 random_s(RandomNumberGenerator& rng, Integer const& n, Integer const& p)
 {
@@ -72,11 +72,10 @@ random_s(RandomNumberGenerator& rng, Integer const& n, Integer const& p)
   h --;
   for (;;) {
     Integer r(rng, Integer::Zero(), h);
-    if (r.Modulo(p).Compare(Integer::Zero()) == 0)
-      continue;
     r <<= 1;
     r ++;
-    return r;
+    if (r.Modulo(p).Compare(Integer::Zero()) != 0)
+      return r;
   }
 }
 
