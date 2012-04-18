@@ -9,16 +9,18 @@ CXXFLAGS = -g -O2 -W -Wall
 
 all: $(PROGRAMS)
 
-katgen: katgen.o mref-c.o
+katgen: katgen.o mref-c.o curves.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -lcryptopp
 
-kat-c: kat-c.o mref-c.o katdata.o
+kat-c: kat-c.o mref-c.o curves.o katdata.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ -lcryptopp
 
-kat-c.o: kat-c.cc mref-c.h katdata.h
+curves.o:  curves.c  curves.h
 katdata.o: katdata.c katdata.h
+
+kat-c.o:  kat-c.cc  mref-c.h katdata.h
 katgen.o: katgen.cc mref-c.h
-mref-c.o: mref-c.cc mref-c.h
+mref-c.o: mref-c.cc mref-c.h curves.h
 
 # We regenerate katdata.c every time, but then we check to make sure it
 # came out the way we expected it.

@@ -3,6 +3,7 @@
 // Written and placed in the public domain by Zack Weinberg, 2012.
 
 #include "mref-c.h"
+#include "curves.h"
 
 using CryptoPP::Integer;
 using CryptoPP::RandomNumberGenerator;
@@ -13,64 +14,23 @@ using CryptoPP::InvalidCiphertext;
 typedef MKEMParams::Point Point;
 typedef MKEMParams::Curve Curve;
 
-// Fixed algorithm parameters
-
-// generating polynomial / reducing polynomial / modulus
-static byte m_[] = { 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC9 };
-
-// elliptic curve coefficient 'b'
-static byte b_[] = { 0x05, 0x84, 0x6d, 0x0f, 0xda, 0x25, 0x53,
-                     0x61, 0x60, 0x67, 0x11, 0xbf, 0x7a, 0x99,
-                     0xb0, 0x72, 0x2e, 0x2e, 0xc8, 0xf7, 0x6b };
-
-// curve group large primes
-// 2923003274661805836407371179614143033958162426611
-static byte p0_[] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                      0x00, 0x00, 0x00, 0x01, 0x40, 0xa3, 0xf2,
-                      0xa0, 0xc6, 0xce, 0xd9, 0xce, 0xea, 0xf3 };
-
-// 5846006549323611672814736302501978089331135490587
-static byte p1_[] = { 0x03, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                      0xff, 0xff, 0xff, 0xfd, 0x7e, 0xb8, 0x1a,
-                      0xbe, 0x72, 0x62, 0x4c, 0x62, 0x2a, 0x1b };
-
-// curve group sizes
-// 4 * 2923003274661805836407371179614143033958162426611
-static byte n0_[] = { 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                      0x00, 0x00, 0x00, 0x05, 0x02, 0x8f, 0xca,
-                      0x83, 0x1b, 0x3b, 0x67, 0x3b, 0xab, 0xcc };
-
-// 2 * 5846006549323611672814736302501978089331135490587
-static byte n1_[] = { 0x07, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                      0xff, 0xff, 0xff, 0xfa, 0xfd, 0x70, 0x35,
-                      0x7c, 0xe4, 0xc4, 0x98, 0xc4, 0x54, 0x36 };
-
-// curve group generators
-// Crypto++ uses the compressed point format defined in Certicom SEC 1
-// ("Standards for Efficient Cryptography 1").  The sign of y in these
-// points shouldn't matter.
-static byte g0_[] = { 0x02,
-                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-static byte g1_[] = { 0x02,
-                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 };
-
 MKEMParams::MKEMParams()
-  : m(m_, sizeof m_), b(b_, sizeof b_), a0(0), a1(1), f(m),
+  : m(mk_curves[MK_CURVE_163_0].m, mk_curves[MK_CURVE_163_0].L_m),
+    b(mk_curves[MK_CURVE_163_0].b, mk_curves[MK_CURVE_163_0].L_b),
+    a0(0),
+    a1(1),
+    f(m),
     c0(f, a0, b),
     c1(f, a1, b),
-    p0(p0_, sizeof p0_),
-    p1(p1_, sizeof p1_),
-    n0(n0_, sizeof n0_),
-    n1(n1_, sizeof n1_)
+    p0(mk_curves[MK_CURVE_163_0].p0, mk_curves[MK_CURVE_163_0].L_p0),
+    p1(mk_curves[MK_CURVE_163_0].p1, mk_curves[MK_CURVE_163_0].L_p1),
+    n0(mk_curves[MK_CURVE_163_0].n0, mk_curves[MK_CURVE_163_0].L_n0),
+    n1(mk_curves[MK_CURVE_163_0].n1, mk_curves[MK_CURVE_163_0].L_n1)
 {
-  c0.DecodePoint(g0, g0_, sizeof g0_);
-  c1.DecodePoint(g1, g1_, sizeof g1_);
+  c0.DecodePoint(g0,
+                 mk_curves[MK_CURVE_163_0].g0, mk_curves[MK_CURVE_163_0].L_g0);
+  c1.DecodePoint(g1,
+                 mk_curves[MK_CURVE_163_0].g1, mk_curves[MK_CURVE_163_0].L_g1);
 
   // Calculate the upper limit for the random integer U input to
   // GenerateMessage.
