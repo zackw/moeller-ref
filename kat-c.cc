@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sys/time.h>
 #include <cryptopp/osrng.h>
 #include "mref-c.h"
 #include "katdata.h"
@@ -95,6 +96,9 @@ test_set(MKEMParams const& params, mk_test_message const* set)
 {
   set_failure = false;
 
+  struct timeval start;
+  gettimeofday(&start, 0);
+
   Integer u(set->u, sizeof set->u);
   SecByteBlock mref(set->m, sizeof set->m);
 
@@ -114,8 +118,13 @@ test_set(MKEMParams const& params, mk_test_message const* set)
     test_one(sk, pk, u, set->pad, sref, mref);
   }
 
-  if (!set_failure)
-    cout << "ok\n";
+  if (!set_failure) {
+    struct timeval stop;
+    gettimeofday(&stop, 0);
+    cout << "ok " << std::fixed << std::setfill(' ') << std::setprecision(2)
+         << (((stop.tv_sec + (double)stop.tv_usec/1e6) -
+              (start.tv_sec + (double)start.tv_usec/1e6))*1000) << "ms\n";
+  }
 }
 
 int

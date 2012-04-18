@@ -6,9 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-
+#include <sys/time.h>
 #include <openssl/err.h>
-
 #include "mref-o.h"
 #include "katdata.h"
 
@@ -145,6 +144,9 @@ test_set(const MKEMParams *params, const mk_test_message *set)
   size_t i;
   MKEM sk, pk;
 
+  struct timeval start, stop;
+
+  gettimeofday(&start, 0);
   set_failure = 0;
   memset(&sk, 0, sizeof(MKEM));
   memset(&pk, 0, sizeof(MKEM));
@@ -184,8 +186,12 @@ test_set(const MKEMParams *params, const mk_test_message *set)
       MKEM_teardown(&pk);
   }
 
-  if (!set_failure)
-    fputs("ok\n", stdout);
+  if (!set_failure) {
+    gettimeofday(&stop, 0);
+    printf("ok %.2fms\n",
+           ((stop.tv_sec + (double)stop.tv_usec/1e6) -
+            (start.tv_sec + (double)start.tv_usec/1e6)) * 1000);
+  }
 
   BN_free(u);
 }
