@@ -1,4 +1,5 @@
 *.o
 katgen
 kat-c
+kat-o
 katdata.c
