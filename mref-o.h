@@ -31,7 +31,9 @@ typedef struct MKEMParams
   const EC_POINT *g1;
 
   size_t  msgsize;
-  uint8_t padmask;
+  unsigned int pad_bits;
+  uint8_t pad_mask;
+  uint8_t curve_bit;
 } MKEMParams;
 
 int MKEMParams_init(MKEMParams *params);

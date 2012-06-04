@@ -28,13 +28,23 @@ public:
   // Return the length of a message in bytes.
   size_t MsgSize() const { return f.MaxElementByteLength(); }
 
+  // Return the number of bits within the first byte of the message
+  // which are padding.
+  unsigned int PadBits() const { return pad_bits; }
+
+  // Return a bitmask which, when applied to the first byte of the message,
+  // will extract the padding bits.
+  byte PadMask() const { return pad_mask; }
+
 private:
   Element m, b, a0, a1;
   Field f;
   Curve c0, c1;
   CryptoPP::Integer p0, p1, n0, n1, maxu;
   Point g0, g1;
-  byte padmask;
+  unsigned int pad_bits;
+  byte pad_mask;
+  byte curve_bit;
 
   friend class MKEM;
 };

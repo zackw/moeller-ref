@@ -17,7 +17,6 @@ MKEMParams_init(MKEMParams *params)
   const mk_curve_params *p = &mk_curves[MK_CURVE_163_0];
   BIGNUM *maxu = 0;
   size_t bitsize, bytesize, bitcap, k;
-  uint8_t mask;
 
   memset(params, 0, sizeof(MKEMParams));
 
@@ -72,9 +71,13 @@ MKEMParams_init(MKEMParams *params)
   bytesize = (bitsize + 7) / 8;
   bitcap = bytesize * 8;
   k = bitcap - bitsize;
-  mask = ~((1 << (8 - k)) - 1);
-  params->msgsize = bytesize;
-  params->padmask = mask;
+  if (k == 0)
+    goto fail;
+
+  params->msgsize   = bytesize;
+  params->pad_bits  = k - 1;
+  params->pad_mask  = ~((1 << (8 - params->pad_bits)) - 1);
+  params->curve_bit = 1 << (8 - k);
 
   return 0;
 
@@ -346,7 +349,7 @@ MKEM_generate_message_u(const MKEM *kp, const BIGNUM *uraw, uint8_t pad,
   FAILZ(EC_POINT_get_affine_coordinates_GF2m(ca, q, &x, &y, kp->params->ctx));
   if (bn2bin_padhi(&x, message, mlen) != mlen)
     goto fail;
-  if (message[0] & kp->params->padmask) /* see below */
+  if (message[0] & (kp->params->pad_mask|kp->params->curve_bit)) /* see below */
     goto fail;
   memcpy(secret, message, mlen);
 
@@ -354,19 +357,19 @@ MKEM_generate_message_u(const MKEM *kp, const BIGNUM *uraw, uint8_t pad,
   if (bn2bin_padhi(&x, secret + mlen, mlen) != mlen)
     goto fail;
 
-  /* K high bits of the message will be zero.  Fill in K-1 of them
-     with random bits from the pad, and use the highest bit to
-     identify the curve in use.  That bit will have a bias on the
+  /* K high bits of the message will be zero.  Fill in the high K-1
+     of them with random bits from the pad, and use the lowest bit
+     to identify the curve in use.  That bit will have a bias on the
      order of 2^{-d/2} where d is the bit-degree of the curve; 2^{-81}
      for the only curve presently implemented.  This is acceptably
      small since an elliptic curve of d bits gives only about d/2 bits
      of security anyway, and is much better than allowing a timing
      attack via the recipient having to attempt point decompression
-     twice for curve 1 but only once for curve 0. */
+     twice for curve 1 but only once for curve 0 (or, alternatively,
+     doubling the time required for all decryptions).  */
 
-  pad &= kp->params->padmask;
-  pad &= 0x7F;
-  pad |= (use_curve0 ? 0 : 0x80);
+  pad &= kp->params->pad_mask;
+  pad |= (use_curve0 ? 0 : kp->params->curve_bit);
   message[0] |= pad;
 
   rv = 0;
@@ -388,7 +391,7 @@ MKEM_generate_message_u(const MKEM *kp, const BIGNUM *uraw, uint8_t pad,
 int
 MKEM_decode_message(const MKEM *kp, uint8_t *secret, const uint8_t *message)
 {
-  int use_curve0 = !(message[0] & 0x80);
+  int use_curve0 = !(message[0] & kp->params->curve_bit);
   const EC_GROUP *ca = use_curve0 ? kp->params->c0 : kp->params->c1;
   const BIGNUM *sa = use_curve0 ? kp->s0 : kp->s1;
   EC_POINT *q = 0, *r = 0;
@@ -410,7 +413,7 @@ MKEM_decode_message(const MKEM *kp, uint8_t *secret, const uint8_t *message)
      the front so we can use EC_POINT_oct2point to recover the
      y-coordinate. */
   unpadded[0] = 0x02;
-  unpadded[1] = (message[0] & ~kp->params->padmask);
+  unpadded[1] = (message[0] & ~(kp->params->pad_mask|kp->params->curve_bit));
   memcpy(&unpadded[2], &message[1], mlen - 1);
 
   FAILZ(EC_POINT_oct2point(ca, q, unpadded, mlen + 1,

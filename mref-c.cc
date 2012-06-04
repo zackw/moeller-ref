@@ -52,10 +52,12 @@ MKEMParams::MKEMParams()
   size_t bitsize = f.MaxElementBitLength();
   size_t bitcap  = f.MaxElementByteLength() * 8;
   size_t k = bitcap - bitsize;
-  byte mask = ~((1 << (8-k)) - 1);
-  if (mask == 0)
+  if (k == 0)
     throw InvalidArgument("bad curve parameters - no space for tag bit");
-  padmask = mask;
+
+  pad_bits = k - 1;
+  pad_mask = ~((1 << (8 - pad_bits)) - 1);
+  curve_bit = 1 << (8 - k);
 }
 
 // The secret integers s0 and s1 must be in the range 0 < s < n for
@@ -190,22 +192,22 @@ MKEM::GenerateMessage(Integer const& u_,
   memcpy(secret.data(), message.data(), eltsize);
   r.x.Encode(secret.data() + eltsize, eltsize);
 
-  // K high bits of the message will be zero.  Fill in K-1 of them
-  // with random bits from the pad, and use the highest bit to
-  // identify the curve in use.  That bit will have a bias on the
+  // K high bits of the message will be zero.  Fill in the high K-1
+  // of them with random bits from the pad, and use the lowest bit
+  // to identify the curve in use.  That bit will have a bias on the
   // order of 2^{-d/2} where d is the bit-degree of the curve; 2^{-81}
   // for the only curve presently implemented.  This is acceptably
   // small since an elliptic curve of d bits gives only about d/2 bits
   // of security anyway, and is much better than allowing a timing
   // attack via the recipient having to attempt point decompression
-  // twice for curve 1 but only once for curve 0.
+  // twice for curve 1 but only once for curve 0 (or, alternatively,
+  // doubling the time required for all decryptions).
 
-  if (message.data()[0] & params->padmask)
+  if (message.data()[0] & (params->pad_mask|params->curve_bit))
     throw InvalidCiphertext("bits expected to be zero are nonzero");
 
-  pad &= params->padmask;
-  pad &= 0x7F;
-  pad |= (use_curve0 ? 0 : 0x80);
+  pad &= params->pad_mask;
+  pad |= (use_curve0 ? 0 : params->curve_bit);
   message.data()[0] |= pad;
 }
 
@@ -227,7 +229,7 @@ MKEM::DecodeMessage(SecByteBlock const& message,
     throw InvalidArgument("secret key not available");
 
   Point q;
-  bool use_curve0 = !(message[0] & 0x80);
+  bool use_curve0 = !(message[0] & params->curve_bit);
   Curve const& ca(use_curve0 ? params->c0 : params->c1);
   Integer const& sa(use_curve0 ? s0 : s1);
 
@@ -235,7 +237,7 @@ MKEM::DecodeMessage(SecByteBlock const& message,
   // the front so we can use DecodePoint() to recover the y-coordinate.
   SecByteBlock unpadded(message.size() + 1);
   unpadded[0] = 0x02;
-  unpadded[1] = (message[0] & ~params->padmask);
+  unpadded[1] = (message[0] & ~(params->pad_mask|params->curve_bit));
   memcpy(&unpadded[2], &message[1], message.size() - 1);
 
   if (!ca.DecodePoint(q, unpadded.data(), unpadded.size()) || q.identity)

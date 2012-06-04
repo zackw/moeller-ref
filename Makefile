@@ -29,11 +29,13 @@ mref-o.o: mref-o.c  mref-o.h curves.h
 
 # We regenerate katdata.c every time, but then we check to make sure it
 # came out the way we expected it.
-katdata.c: katgen
-	./katgen > katdata.cT
+katdata.cT: katgen
+	./katgen katdata.cT
+
+katdata.c: katdata.cT katdata-ref.c
 	cmp -s katdata.cT katdata-ref.c || \
-	    { diff -u katdata.cT katdata-ref.c; exit 1; }
-	mv -f katdata.cT katdata.c
+	    { diff -u katdata-ref.c katdata.cT; exit 1; }
+	cp katdata.cT katdata.c
 
 check: all
 	./kat-c
